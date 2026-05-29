@@ -1,0 +1,22 @@
+appId: com.pdd.uploader
+productName: 拼多多上架助手
+directories:
+  output: release/${version}
+  buildResources: resources
+files:
+  - out/**/*
+  - resources/**/*
+asarUnpack:
+  - resources/**
+mac:
+  target:
+    - dmg
+  category: public.app-category.productivity
+  artifactName: ${productName}-${version}.${ext}
+win:
+  target:
+    - nsis
+  artifactName: ${productName}-Setup-${version}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

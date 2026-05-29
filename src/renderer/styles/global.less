@@ -1,0 +1,33 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
+}
+
+.app-layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  &__header {
+    flex: none;
+  }
+
+  &__body {
+    flex: 1;
+    overflow: auto;
+    padding: 16px 24px;
+  }
+}
+
+.dashboard-card {
+  margin-bottom: 16px;
+}

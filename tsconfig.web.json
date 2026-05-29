@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "outDir": "out/types/web"
+  },
+  "include": [
+    "src/renderer/**/*",
+    "src/preload/types.ts",
+    "src/shared/**/*"
+  ]
+}

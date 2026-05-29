@@ -1,0 +1,4 @@
+title,categoryPath,marketPrice,groupPrice,singlePrice,stock,outerId,spec1Name,spec1Value,spec2Name,spec2Value,mainImages,detailHtml,freightTemplate,returnPolicy
+iPhone 15 手机壳,数码配件>手机壳,29.9,19.9,21.9,100,SKU001,颜色,红色,型号,标准版,images/case-red.jpg;images/case-red-2.jpg,,默认运费模板,7天无理由
+iPhone 15 手机壳,数码配件>手机壳,39.9,29.9,31.9,80,SKU002,颜色,红色,型号,防摔版,images/case-red.jpg,,默认运费模板,7天无理由
+iPhone 15 手机壳,数码配件>手机壳,29.9,19.9,21.9,120,SKU003,颜色,蓝色,型号,标准版,images/case-blue.jpg,,默认运费模板,7天无理由

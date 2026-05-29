@@ -1,0 +1,40 @@
+{
+  "name": "pdd-uploader",
+  "version": "1.0.0",
+  "description": "拼多多批量上架助手 - Electron + Playwright 桌面端自动化工具",
+  "main": "out/main/index.js",
+  "author": "pdd-uploader",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "build:mac": "electron-vite build && electron-builder --mac",
+    "build:win": "electron-vite build && electron-builder --win",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0",
+    "playwright": "1.45.0",
+    "xlsx": "0.18.5"
+  },
+  "devDependencies": {
+    "@douyinfe/semi-ui": "2.61.0",
+    "@types/node": "20.11.30",
+    "@types/react": "18.2.66",
+    "@types/react-dom": "18.2.22",
+    "@vitejs/plugin-react": "4.2.1",
+    "electron": "30.0.1",
+    "electron-builder": "24.13.3",
+    "electron-vite": "2.1.0",
+    "less": "4.2.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "typescript": "5.4.5",
+    "vite": "5.2.8"
+  }
+}
