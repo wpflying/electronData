@@ -121,6 +121,13 @@ export interface IpcApi {
 export interface CreateTaskParams {
   /** 第 2 步：搜索链接 / 商机搜索链接（用作上下文，可选） */
   searchUrl: string;
+  /**
+   * 第 2.5 步：使用搜索结果中的第几个商品「发布同款」（1 起）
+   * - 1 = 第一个；2 = 第二个；以此类推
+   * - 主进程内部会减 1 转成 0-based 索引传给 clickPublishSame
+   * - 不传或 < 1 则按 1 处理
+   */
+  productIndex?: number;
   /** 第 3 步：商品 SKU 行列表（来自 Excel） */
   productRows: ProductRow[];
   /** 第 4 步：每个商品创建几次 */

@@ -54,6 +54,8 @@ class CreateTaskService extends EventEmitter {
     this.publishPage = null;
 
     const { searchUrl, productRows, timesPerProduct = 1 } = params;
+    // 第几个商品（UI 1-based → 内部 0-based）
+    const productIndex0 = Math.max(0, (params.productIndex ?? 1) - 1);
     const skus = productRows.map((r) => r.sku).filter(Boolean);
     const total = Math.max(1, timesPerProduct);
 
@@ -68,7 +70,7 @@ class CreateTaskService extends EventEmitter {
     this.emitProgress(progress);
 
     logger.info(
-      `创建任务开始：搜索链接=${searchUrl} SKU 数=${skus.length} 重复=${total} 次 autoSubmit=${!!params.autoSubmit}`,
+      `创建任务开始：搜索链接=${searchUrl} 第${productIndex0 + 1}个商品 SKU 数=${skus.length} 重复=${total} 次 autoSubmit=${!!params.autoSubmit}`,
     );
 
     // 1. 校验登录态（只校验一次）
@@ -109,9 +111,9 @@ class CreateTaskService extends EventEmitter {
         await page.bringToFront().catch(() => undefined);
 
         // 2.2 点「发布同款」+ 关闭弹窗
-        progress.message = `第 ${round}/${total} 轮：点击『发布同款』...`;
+        progress.message = `第 ${round}/${total} 轮：点击第 ${productIndex0 + 1} 个商品『发布同款』...`;
         this.emitProgress(progress);
-        this.publishPage = await clickPublishSame(context, page, 0);
+        this.publishPage = await clickPublishSame(context, page, productIndex0);
 
         // 2.3 等发布页加载
         await this.publishPage

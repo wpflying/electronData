@@ -40,6 +40,8 @@ const Dashboard = () => {
 
   // ② 搜索链接
   const [searchUrl, setSearchUrl] = useState("");
+  // ②.5 用搜索结果中的第几个商品「发布同款」（1 起）
+  const [productIndex, setProductIndex] = useState<number>(1);
 
   // ③ 商品 Excel
   const [excelPath, setExcelPath] = useState("");
@@ -128,6 +130,7 @@ const Dashboard = () => {
 
     await window.api.startCreate({
       searchUrl: searchUrl.trim(),
+      productIndex,
       productRows,
       timesPerProduct,
       autoSubmit,
@@ -147,6 +150,7 @@ const Dashboard = () => {
     Toast.info("已发起『重试规格』调试任务，复用当前发布页");
     await window.api.retryCreate({
       searchUrl: searchUrl.trim(),
+      productIndex,
       productRows,
       timesPerProduct,
     });
@@ -221,20 +225,37 @@ const Dashboard = () => {
         </Space>
       </Card>
 
-      {/* ② 搜索链接 */}
+      {/* ② 搜索链接 + 第几个商品 */}
       <Card
         className="dashboard-card"
         title={<Title heading={5}>② 输入搜索链接</Title>}
       >
         <Paragraph type="tertiary">
           填写「商机/搜索页」链接，应用会先打开此页面作为操作上下文。
+          可在右侧设置使用搜索结果列表中的<strong>第几个商品</strong>
+          「发布同款」（默认第 1 个）。
         </Paragraph>
-        <Input
-          value={searchUrl}
-          onChange={setSearchUrl}
-          placeholder="https://mms.pinduoduo.com/sycm/..."
-          disabled={!logged}
-        />
+        <Space style={{ width: "100%" }} align="center">
+          <Input
+            value={searchUrl}
+            onChange={setSearchUrl}
+            placeholder="https://mms.pinduoduo.com/sycm/..."
+            disabled={!logged}
+            style={{ width: 520 }}
+          />
+          <Text>用第</Text>
+          <InputNumber
+            value={productIndex}
+            onChange={(v) => setProductIndex(typeof v === "number" ? v : 1)}
+            min={1}
+            max={50}
+            step={1}
+            style={{ width: 90 }}
+            disabled={!logged}
+          />
+          <Text>个商品</Text>
+          <Text type="tertiary">（按列表顺序，1 = 第一个）</Text>
+        </Space>
       </Card>
 
       {/* ③ 商品 SKU Excel */}
