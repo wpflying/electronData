@@ -157,75 +157,80 @@ export async function addCombinationSpecType(page: Page): Promise<void> {
 }
 
 /**
- * 逐行输入 SKU 名称：
- *   - 每输入一条按 Enter，页面会新增下一个空白输入框
- *   - 持续到所有 sku 输入完成
- *   - 跳过已存在的（避免重复添加）
+ * 单条输入一个 SKU 名（只填一个空白 input + 按 Enter）
+ *
+ * 用于"每输入一行 SKU 后立刻去填这行的价格库存"的逐行流程。
+ * 严格找 placeholder="请输入规格名称" 且 value="" 的 input。
+ *
+ * @returns 是否成功输入（已存在则返回 false）
  */
-export async function inputSkuValues(
+export async function addSingleSkuValue(
   page: Page,
-  skus: string[],
-): Promise<void> {
-  for (let i = 0; i < skus.length; i++) {
-    const value = skus[i].trim();
-    if (!value) continue;
+  value: string,
+): Promise<boolean> {
+  const v = value.trim();
+  if (!v) return false;
 
-    // 已存在则跳过
-    const exists = await page
-      .locator(`text="${value.replace(/"/g, '\\"')}"`)
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (exists) {
-      logger.info(`SKU 已存在，跳过：${value}`);
-      continue;
-    }
-
-    // 取最后一个空白输入框
-    const inputs = page.locator(SELECTORS.specValueInput);
-    const count = await inputs.count();
-    if (count === 0) {
-      throw new Error("未找到『请输入规格名称』输入框，可能未成功添加规格类型");
-    }
-    const target = inputs.nth(count - 1);
-
-    await target.click();
-    await target.fill(value);
-    await target.press("Enter");
-    logger.info(`输入 SKU(${i + 1}/${skus.length})：${value}`);
-
-    // 等待页面新增下一个输入框（如果不是最后一条）
-    await page.waitForTimeout(400);
-    if (i < skus.length - 1) {
-      // 轮询等待 input 数量增加（最多等 3s）
-      const deadline = Date.now() + 3000;
-      while (Date.now() < deadline) {
-        const newCount = await inputs.count();
-        if (newCount > count) break;
-        await page.waitForTimeout(200);
-      }
-    }
+  // 严格相等去重（读已有 input value）
+  const existing = await page
+    .evaluate((selector) => {
+      // @ts-ignore 浏览器侧 document
+      const list = Array.from(document.querySelectorAll(selector));
+      // @ts-ignore HTMLInputElement
+      return list.map((el) => (el as { value?: string }).value || "");
+    }, SELECTORS.specValueInput)
+    .catch(() => [] as string[]);
+  if (existing.includes(v)) {
+    logger.info(`SKU 已存在（严格相等），跳过：${v}`);
+    return false;
   }
+
+  // 找第一个 value="" 的 input 索引
+  const targetIndex = await page
+    .evaluate((selector) => {
+      // @ts-ignore 浏览器侧 document
+      const list = Array.from(document.querySelectorAll(selector));
+      for (let i = 0; i < list.length; i++) {
+        // @ts-ignore HTMLInputElement
+        if (!(list[i] as { value?: string }).value) return i;
+      }
+      return -1;
+    }, SELECTORS.specValueInput)
+    .catch(() => -1);
+
+  if (targetIndex < 0) {
+    throw new Error("未找到空白的『请输入规格名称』输入框，可能未设置规格类型");
+  }
+
+  const inputs = page.locator(SELECTORS.specValueInput);
+  const target = inputs.nth(targetIndex);
+  await target.click();
+  await target.fill(v);
+  await target.press("Enter");
+  logger.info(`输入 SKU [idx=${targetIndex}]：${v}`);
+
+  // 等待该 SKU 出现在已添加列表（标签）
+  // 简化：等"该 input value 已被清空 + 出现新空白 input"
+  await page.waitForTimeout(500);
+  return true;
 }
 
 /**
- * 一键完成：删除已有 → 添加「组合」 → 输入全部 SKU
+ * 仅做规格类型前置：删除已有规格 → 添加「组合」类型
+ *
+ * 不再批量输入 SKU 名。SKU 名由外层「逐行流程」按行调用 addSingleSkuValue。
  *
  * 调试技巧：
  *   - 想在某一步暂停，把对应行下面 await page.pause() 注释解开
  *     page.pause() 会暂停脚本并打开 Playwright Inspector，让你能在浏览器里手动操作
  *   - 也可以用环境变量 PWDEBUG=1 启动 dev：每个动作前自动暂停
  */
-export async function setupCombinationSpecs(
-  page: Page,
-  skus: string[],
-): Promise<void> {
-  logger.info(`开始设置规格：共 ${skus.length} 个 SKU`);
+export async function setupSpecTypeOnly(page: Page): Promise<void> {
+  logger.info("规格前置：删除已有规格 + 添加『组合』类型");
   // await page.pause(); // ← 进入此函数即暂停（解开注释生效）
   await deleteAllSpecTypes(page);
   // await page.pause(); // ← 删除完已有规格后暂停
   await addCombinationSpecType(page);
   // await page.pause(); // ← 选完「组合」后暂停，确认下拉是否选中
-  await inputSkuValues(page, skus);
-  logger.info("规格设置完成");
+  logger.info("规格类型设置完成（待逐行输入 SKU 名）");
 }

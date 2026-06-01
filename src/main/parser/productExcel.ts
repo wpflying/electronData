@@ -46,6 +46,15 @@ const HEADER_MAP: Record<string, keyof ProductRow> = {
   规格: "specCode",
   规格编码: "specCode",
   商家编码: "specCode",
+  // SKU 在拼多多"图片空间"里搜索的文件名
+  sku文件名称: "imageFileName",
+  sku文件名: "imageFileName",
+  图片名称: "imageFileName",
+  图片文件名: "imageFileName",
+  图片名: "imageFileName",
+  文件名: "imageFileName",
+  imagename: "imageFileName",
+  imagefilename: "imageFileName",
 };
 
 /** 把单元格 key 标准化（去空格、转小写英文） */
@@ -72,12 +81,19 @@ function toNumber(v: unknown): number | null {
 /**
  * 把任意原始行（key 可能是中文表头）映射成 ProductRow 的部分字段
  */
-function mapRow(raw: RawRow, lookup: Record<string, keyof ProductRow>): Partial<ProductRow> {
+function mapRow(
+  raw: RawRow,
+  lookup: Record<string, keyof ProductRow>,
+): Partial<ProductRow> {
   const out: Partial<ProductRow> = {};
   Object.entries(raw).forEach(([k, v]) => {
     const field = lookup[normalizeKey(k)];
     if (!field) return;
-    if (field === "stock" || field === "groupPrice" || field === "singlePrice") {
+    if (
+      field === "stock" ||
+      field === "groupPrice" ||
+      field === "singlePrice"
+    ) {
       const n = toNumber(v);
       if (n !== null) (out as Record<string, unknown>)[field] = n;
     } else {
@@ -94,7 +110,10 @@ function mapRow(raw: RawRow, lookup: Record<string, keyof ProductRow>): Partial<
  * - 本地路径：相对于 Excel 所在目录解析
  * - http(s) 链接：保持原样，由后续上传流程下载
  */
-function resolvePreviewImage(raw: string | undefined, baseDir: string): string | undefined {
+function resolvePreviewImage(
+  raw: string | undefined,
+  baseDir: string,
+): string | undefined {
   if (!raw) return undefined;
   const first = raw
     .split(/[;；]/)
@@ -113,14 +132,22 @@ export interface ParseProductExcelResult {
 export function parseProductExcel(filePath: string): ParseProductExcelResult {
   const errors: ValidationError[] = [];
   if (!existsSync(filePath)) {
-    return { rows: [], errors: [{ rowIndex: -1, field: "file", message: "文件不存在" }] };
+    return {
+      rows: [],
+      errors: [{ rowIndex: -1, field: "file", message: "文件不存在" }],
+    };
   }
 
   const baseDir = dirname(filePath);
   const wb = XLSX.readFile(filePath);
   const sheetName = wb.SheetNames[0];
   if (!sheetName) {
-    return { rows: [], errors: [{ rowIndex: -1, field: "sheet", message: "Excel 中无任何工作表" }] };
+    return {
+      rows: [],
+      errors: [
+        { rowIndex: -1, field: "sheet", message: "Excel 中无任何工作表" },
+      ],
+    };
   }
   const ws = wb.Sheets[sheetName];
   const raws = XLSX.utils.sheet_to_json<RawRow>(ws, { defval: "" });
@@ -154,8 +181,15 @@ export function parseProductExcel(filePath: string): ParseProductExcelResult {
         : partial.groupPrice;
 
     // 预览图本地文件存在性校验
-    const previewImage = resolvePreviewImage(partial.previewImage as string, baseDir);
-    if (previewImage && !/^https?:\/\//i.test(previewImage) && !existsSync(previewImage)) {
+    const previewImage = resolvePreviewImage(
+      partial.previewImage as string,
+      baseDir,
+    );
+    if (
+      previewImage &&
+      !/^https?:\/\//i.test(previewImage) &&
+      !existsSync(previewImage)
+    ) {
       errors.push({
         rowIndex,
         field: "previewImage",
@@ -172,6 +206,7 @@ export function parseProductExcel(filePath: string): ParseProductExcelResult {
       singlePrice,
       previewImage,
       specCode: partial.specCode as string | undefined,
+      imageFileName: partial.imageFileName as string | undefined,
     });
   });
 

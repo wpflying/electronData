@@ -9,3 +9,4 @@ dist
 playwright-report
 test-results
 storage-state.json
+.userData

@@ -22,6 +22,7 @@ const api: IpcApi = {
 
   loginPdd: () => ipcRenderer.invoke(IPC_CHANNELS.LOGIN_PDD),
   isLoggedIn: () => ipcRenderer.invoke(IPC_CHANNELS.IS_LOGGED_IN),
+  fetchUserName: () => ipcRenderer.invoke(IPC_CHANNELS.FETCH_USER_NAME),
 
   pickExcel: () => ipcRenderer.invoke(IPC_CHANNELS.PICK_EXCEL),
   parseExcel: (filePath: string): Promise<ParseResult> =>
@@ -36,6 +37,8 @@ const api: IpcApi = {
   startCreate: (params: CreateTaskParams) =>
     ipcRenderer.invoke(IPC_CHANNELS.START_CREATE, params),
   stopCreate: () => ipcRenderer.invoke(IPC_CHANNELS.STOP_CREATE),
+  retryCreate: (params: CreateTaskParams) =>
+    ipcRenderer.invoke(IPC_CHANNELS.RETRY_CREATE, params),
 
   onTaskUpdate: (cb) => {
     const handler = (_e: unknown, state: TaskState) => cb(state);

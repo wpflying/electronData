@@ -199,6 +199,43 @@ class BrowserController {
     return this.ensureContext();
   }
 
+  /**
+   * 从拼多多商家后台 DOM 取出当前登录用户名
+   * 选择器：.user-name-text（截图）
+   * 若 page 没在商家后台首页，会先 goto 一次
+   */
+  async fetchUserName(): Promise<string | null> {
+    try {
+      const { page } = await this.ensureContext();
+      // 如果当前不在 mms 域名，先 goto 一次
+      if (!/mms\.pinduoduo\.com/.test(page.url())) {
+        await page
+          .goto("https://mms.pinduoduo.com/home/", {
+            waitUntil: "domcontentloaded",
+            timeout: 20_000,
+          })
+          .catch(() => undefined);
+      }
+      // 用 evaluate 直接取，避开 locator 隐式 30s 等待
+      const name = await page
+        .evaluate(() => {
+          // @ts-ignore 浏览器侧 document
+          const el = document.querySelector(".user-name-text");
+          // @ts-ignore textContent
+          return el ? (el.textContent || "").trim() : "";
+        })
+        .catch(() => "");
+      if (name) {
+        logger.info(`当前登录用户：${name}`);
+        return name;
+      }
+      return null;
+    } catch (err) {
+      logger.warn(`获取用户名失败：${(err as Error).message}`);
+      return null;
+    }
+  }
+
   /** 释放资源 */
   async dispose(): Promise<void> {
     try {

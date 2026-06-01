@@ -93,6 +93,8 @@ export interface IpcApi {
   // 登录
   loginPdd: () => Promise<{ ok: boolean; message?: string }>;
   isLoggedIn: () => Promise<boolean>;
+  /** 获取当前拼多多登录用户名（取自 .user-name-text） */
+  fetchUserName: () => Promise<string | null>;
 
   // Excel
   pickExcel: () => Promise<string | null>;
@@ -106,6 +108,8 @@ export interface IpcApi {
   pickProductExcel: () => Promise<ProductExcelResult | null>;
   startCreate: (params: CreateTaskParams) => Promise<void>;
   stopCreate: () => Promise<void>;
+  /** 调试：仅重跑规格设置（删除已有规格 + 添加组合 + 输入 SKU），复用当前发布页 */
+  retryCreate: (params: CreateTaskParams) => Promise<void>;
 
   // 事件订阅
   onTaskUpdate: (cb: (state: TaskState) => void) => () => void;
@@ -121,11 +125,13 @@ export interface CreateTaskParams {
   productRows: ProductRow[];
   /** 第 4 步：每个商品创建几次 */
   timesPerProduct: number;
+  /** 是否在填表完成后自动点击『提交并上架』（默认 false，由用户人工核对） */
+  autoSubmit?: boolean;
 }
 
 /**
  * Excel 商品 SKU 行
- * 表头映射：SKU / 库存 / 拼单价(元) / 单买价(元) / 预览图 / 规格
+ * 表头映射：SKU / 库存 / 拼单价(元) / 单买价(元) / 预览图 / 规格 / SKU文件名称
  * 用于发布页"规格与库存"模块逐行填充
  */
 export interface ProductRow {
@@ -146,6 +152,11 @@ export interface ProductRow {
   previewImage?: string;
   /** 规格编码，如 ZJJQHW*1 */
   specCode?: string;
+  /**
+   * 图片空间中的文件名（用于在拼多多"图片空间"弹窗里搜索 + 选第一张）
+   * 示例：1、2.jpg、独生子-1套
+   */
+  imageFileName?: string;
 }
 
 /** 商品 Excel 解析结果 */
@@ -178,6 +189,7 @@ export const IPC_CHANNELS = {
   SET_CONFIG: "config:set",
   LOGIN_PDD: "pdd:login",
   IS_LOGGED_IN: "pdd:isLoggedIn",
+  FETCH_USER_NAME: "pdd:fetchUserName",
   PICK_EXCEL: "excel:pick",
   PARSE_EXCEL: "excel:parse",
   START_BATCH: "batch:start",
@@ -185,6 +197,7 @@ export const IPC_CHANNELS = {
   PICK_PRODUCT_EXCEL: "create:pickProductExcel",
   START_CREATE: "create:start",
   STOP_CREATE: "create:stop",
+  RETRY_CREATE: "create:retry",
   CREATE_PROGRESS: "create:progress",
   TASK_UPDATE: "task:update",
   LOG: "log:line",

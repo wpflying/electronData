@@ -85,6 +85,9 @@ function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.IS_LOGGED_IN, async () => {
     return browserController.isLoggedIn();
   });
+  ipcMain.handle(IPC_CHANNELS.FETCH_USER_NAME, async () => {
+    return browserController.fetchUserName();
+  });
 
   // Excel 选择 + 解析
   ipcMain.handle(IPC_CHANNELS.PICK_EXCEL, async () => {
@@ -133,7 +136,9 @@ function registerIpcHandlers(): void {
       return {
         filePath,
         rows: [],
-        errors: [{ rowIndex: -1, field: "file", message: (err as Error).message }],
+        errors: [
+          { rowIndex: -1, field: "file", message: (err as Error).message },
+        ],
       };
     }
   });
@@ -149,6 +154,13 @@ function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.STOP_CREATE, async () => {
     await createTaskService.stop();
   });
+  // 调试：仅重跑规格设置
+  ipcMain.handle(
+    IPC_CHANNELS.RETRY_CREATE,
+    async (_e, params: CreateTaskParams) => {
+      void createTaskService.retrySpecs(params);
+    },
+  );
 }
 
 /** 任务调度器与日志事件 -> 推送到渲染进程 */

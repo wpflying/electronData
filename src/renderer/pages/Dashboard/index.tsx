@@ -12,6 +12,7 @@ import {
   Tag,
   Table,
   Banner,
+  Switch,
 } from "@douyinfe/semi-ui";
 import type {
   CreateProgressState,
@@ -34,6 +35,8 @@ const Dashboard = () => {
   // ① 登录
   const [logged, setLogged] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
+  /** 拼多多登录用户名（来自 .user-name-text） */
+  const [userName, setUserName] = useState<string>("");
 
   // ② 搜索链接
   const [searchUrl, setSearchUrl] = useState("");
@@ -45,6 +48,8 @@ const Dashboard = () => {
 
   // ④ 创建次数
   const [timesPerProduct, setTimesPerProduct] = useState<number>(1);
+  // 是否提交后自动上架（默认 true：填表完成后自动点『提交并上架』）
+  const [autoSubmit, setAutoSubmit] = useState<boolean>(true);
 
   // ⑤ 进度
   const [progress, setProgress] = useState<CreateProgressState>({
@@ -67,7 +72,13 @@ const Dashboard = () => {
 
   // 启动时检测登录态
   useEffect(() => {
-    window.api.isLoggedIn().then(setLogged);
+    window.api.isLoggedIn().then(async (ok) => {
+      setLogged(ok);
+      if (ok) {
+        const name = await window.api.fetchUserName();
+        if (name) setUserName(name);
+      }
+    });
   }, []);
 
   // 订阅创建进度
@@ -84,6 +95,9 @@ const Dashboard = () => {
       if (r.ok) {
         Toast.success("登录成功");
         setLogged(true);
+        // 异步拉一下用户名
+        const name = await window.api.fetchUserName();
+        if (name) setUserName(name);
       } else {
         Toast.error(`登录失败：${r.message}`);
       }
@@ -116,11 +130,26 @@ const Dashboard = () => {
       searchUrl: searchUrl.trim(),
       productRows,
       timesPerProduct,
+      autoSubmit,
     });
   };
 
   const handleStop = async () => {
     await window.api.stopCreate();
+  };
+
+  /** 调试：仅重跑「删除已有规格 + 添加组合 + 输入 SKU」，复用当前发布页 */
+  const handleRetrySpecs = async () => {
+    if (productRows.length === 0) {
+      Toast.warning("请先上传商品 SKU Excel");
+      return;
+    }
+    Toast.info("已发起『重试规格』调试任务，复用当前发布页");
+    await window.api.retryCreate({
+      searchUrl: searchUrl.trim(),
+      productRows,
+      timesPerProduct,
+    });
   };
 
   const percent =
@@ -130,39 +159,28 @@ const Dashboard = () => {
 
   // SKU 表格列定义
   const columns = [
-    { title: "SKU", dataIndex: "sku", width: 280, ellipsis: true },
-    { title: "库存", dataIndex: "stock", width: 100 },
-    { title: "拼单价(元)", dataIndex: "groupPrice", width: 110 },
-    { title: "单买价(元)", dataIndex: "singlePrice", width: 110 },
+    { title: "SKU", dataIndex: "sku", width: 220, ellipsis: true },
+    { title: "库存", dataIndex: "stock", width: 90 },
+    { title: "拼单价(元)", dataIndex: "groupPrice", width: 100 },
+    { title: "单买价(元)", dataIndex: "singlePrice", width: 100 },
     {
-      title: "预览图",
-      dataIndex: "previewImage",
-      width: 80,
-      render: (v?: string) => {
-        if (!v) return <Text type="tertiary">-</Text>;
-        const isUrl = /^https?:\/\//i.test(v);
-        return isUrl ? (
-          <img
-            src={v}
-            alt="preview"
-            style={{
-              width: 36,
-              height: 36,
-              objectFit: "cover",
-              borderRadius: 4,
-            }}
-          />
+      title: "SKU 文件名",
+      dataIndex: "imageFileName",
+      width: 140,
+      ellipsis: true,
+      render: (v?: string) =>
+        v ? (
+          <Tag color="cyan" size="small">
+            {v}
+          </Tag>
         ) : (
-          <Text type="tertiary" ellipsis style={{ maxWidth: 60 }}>
-            本地图
-          </Text>
-        );
-      },
+          <Text type="danger">缺失</Text>
+        ),
     },
     {
       title: "规格",
       dataIndex: "specCode",
-      width: 120,
+      width: 110,
       render: (v?: string) => v || <Text type="tertiary">-</Text>,
     },
   ];
@@ -175,8 +193,8 @@ const Dashboard = () => {
           <Steps.Step title="登录" description="拼多多商家后台" />
           <Steps.Step title="搜索链接" description="商机/搜索页地址" />
           <Steps.Step title="商品 Excel" description="导入 SKU 行" />
-          <Steps.Step title="创建次数" description="每个商品创建几次" />
-          <Steps.Step title="开始创建" description="自动填充规格与库存" />
+          <Steps.Step title="重复创建次数" description="整个流程重复多少次" />
+          <Steps.Step title="开始创建" description="自动填表 + 提交上架" />
         </Steps>
       </Card>
 
@@ -187,6 +205,11 @@ const Dashboard = () => {
       >
         <Space>
           <Text>当前登录态：{logged ? "✅ 已登录（缓存）" : "❌ 未登录"}</Text>
+          {logged && userName && (
+            <Tag color="cyan" size="large">
+              👤 {userName}
+            </Tag>
+          )}
           <Button
             type="primary"
             theme={logged ? "light" : "solid"}
@@ -224,7 +247,7 @@ const Dashboard = () => {
       >
         <Banner
           type="info"
-          description="Excel 表头需包含：SKU / 库存 / 拼单价(元) / 单买价(元) / 预览图 / 规格。每行将被填入发布页『规格与库存』模块。"
+          description="Excel 表头需包含：SKU / 库存 / 拼单价(元) / 单买价(元) / 规格 / SKU文件名称。最后一列『SKU文件名称』必须是已上传到拼多多『图片空间』的文件名（应用会按此名搜索并选第一张）。"
           style={{ marginBottom: 12 }}
           closeIcon={null}
         />
@@ -265,13 +288,13 @@ const Dashboard = () => {
         )}
       </Card>
 
-      {/* ④ 创建次数 */}
+      {/* ④ 重复创建次数 */}
       <Card
         className="dashboard-card"
-        title={<Title heading={5}>④ 输入创建次数</Title>}
+        title={<Title heading={5}>④ 重复创建次数</Title>}
       >
         <Space>
-          <Text>每个 SKU 创建</Text>
+          <Text>整个流程重复执行</Text>
           <InputNumber
             value={timesPerProduct}
             onChange={(v) => setTimesPerProduct(typeof v === "number" ? v : 1)}
@@ -282,8 +305,9 @@ const Dashboard = () => {
           />
           <Text>次</Text>
           <Text type="tertiary">
-            预计执行：{productRows.length} 条 × {timesPerProduct} 次 ={" "}
-            <strong>{productRows.length * timesPerProduct}</strong> 个任务
+            预计执行：从『打开搜索链接 → 发布同款 → 填表 → 提交』完整一轮 ×{" "}
+            <strong>{timesPerProduct}</strong> 次 ={" "}
+            <strong>{timesPerProduct}</strong> 个商品
           </Text>
         </Space>
       </Card>
@@ -299,6 +323,19 @@ const Dashboard = () => {
           style={{ marginBottom: 12 }}
           closeIcon={null}
         />
+        <Space style={{ marginBottom: 12 }}>
+          <Text>提交后自动上架：</Text>
+          <Switch
+            checked={autoSubmit}
+            onChange={setAutoSubmit}
+            disabled={progress.running}
+          />
+          <Text type="tertiary">
+            {autoSubmit
+              ? "✅ 填表完成会自动点击『提交并上架』"
+              : "⚠️ 填表完成停在编辑页，由人工点击『提交并上架』"}
+          </Text>
+        </Space>
         <Space>
           <Button
             type="primary"
@@ -315,6 +352,13 @@ const Dashboard = () => {
             disabled={!progress.running}
           >
             中止
+          </Button>
+          <Button
+            type="warning"
+            onClick={handleRetrySpecs}
+            disabled={progress.running || productRows.length === 0}
+          >
+            🔁 重试规格（调试用）
           </Button>
           <Text>
             进度：{progress.finished} / {progress.total}
